@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1783797342180,
+      "tag": "0000_zippy_random",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1783799817166,
+      "tag": "0001_plain_otto_octavius",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1783800950590,
+      "tag": "0002_late_mathemanic",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1784154117006,
+      "tag": "0003_curious_madripoor",
+      "breakpoints": true
+    }
+  ]
+}

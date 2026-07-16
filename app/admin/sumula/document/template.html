@@ -1,0 +1,1786 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Súmula de Jogo - Basquete CBB</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap');
+
+        :root {
+            --border-color: #000;
+            --bg-gray: #e5e7eb;
+            --team-a-color: #dc2626; /* Vermelho */
+            --team-b-color: #2563eb; /* Azul */
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #52525b;
+            font-family: 'Roboto', Arial, sans-serif;
+            font-size: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: stretch;
+            min-height: 100vh;
+            padding: 0;
+        }
+
+        html, body { width: 100%; max-width: 100%; height: 100%; }
+        body.keyboard-open { height: 100dvh; overflow: hidden; }
+
+        .sheet-viewport {
+            width: 100%; max-width: 100vw; flex: 1 1 auto; min-height: 0; padding: 20px;
+            display: flex; justify-content: center; align-items: flex-start;
+            overflow: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+            touch-action: auto; scrollbar-gutter: stable;
+        }
+
+        .page-container {
+            background-color: #fff;
+            width: 210mm;
+            min-width: 210mm;
+            flex: 0 0 210mm;
+            /* min-height: 297mm; removido para não estourar a página A4 na impressão */
+            padding: 8mm;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            position: relative;
+            color: #000;
+        }
+
+        @page {
+            size: A4;
+            margin: 2mm;
+        }
+
+        @media print {
+            html, body, body.keyboard-open { width: 210mm; height: 297mm; background-color: #fff; padding: 0; margin: 0; overflow: hidden; display: block; }
+            .sheet-viewport { display: block; width: 210mm; height: 297mm; padding: 0; overflow: hidden; }
+            .page-container { width: 210mm; min-width: 210mm; height: auto; min-height: 0; padding: 4mm; box-shadow: none; margin: 0; zoom: var(--print-zoom, .91); }
+            .no-print { display: none !important; }
+            input::placeholder { color: transparent; }
+        }
+
+        .controls {
+            position: fixed; top: 20px; right: 20px; display: flex; flex-direction: column; gap: 10px; z-index: 1000;
+        }
+        .btn {
+            background-color: #2563eb; color: white; border: none; padding: 10px 15px; border-radius: 5px; cursor: pointer; font-size: 14px; font-weight: bold; box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+        }
+        .btn-red { background-color: #dc2626; }
+        .btn-purple { background-color: #9333ea; }
+        .btn:hover { filter: brightness(1.1); }
+        .keyboard-launcher { position: fixed; right: 20px; bottom: 20px; z-index: 1900; border: none; border-radius: 999px; padding: 12px 18px; background: #f59e0b; color: #111827; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 12px rgba(0,0,0,.4); }
+        .keyboard-launcher:hover { filter: brightness(1.08); }
+        .keyboard-launcher.hidden { display: none; }
+
+        h1, h2, h3, h4 { text-align: center; margin-bottom: 2px; }
+        h1 { font-size: 16px; font-weight: bold; text-transform: uppercase; }
+        h2 { font-size: 10px; font-weight: normal; margin-bottom: 8px; }
+        h3 { font-size: 14px; font-weight: bold; margin-bottom: 10px; }
+
+        input[type="text"], input[type="date"], input[type="time"] {
+            border: none; background: transparent;
+            font-family: Arial, sans-serif; /* FONTE ARIAL 11 SOLICITADA */
+            font-size: 11px; font-weight: bold; color: #1e3a8a;
+            width: 100%; padding: 0 2px; outline: none;
+        }
+
+        @media screen {
+            input[type="text"]:hover, input[type="date"]:hover, input[type="time"]:hover {
+                background-color: rgba(59, 130, 246, 0.1); box-shadow: inset 0 0 0 1px rgba(59, 130, 246, 0.3);
+            }
+        }
+        input[type="text"]:focus, input[type="date"]:focus, input[type="time"]:focus {
+            background-color: rgba(255, 255, 0, 0.2) !important; box-shadow: none !important;
+        }
+
+        .border-bottom-input { border-bottom: 1px solid #999 !important; }
+
+        .main-header { border: 2px solid var(--border-color); padding: 5px; margin-bottom: 5px; display: flex; flex-direction: column; }
+        .header-top { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 5px; }
+        .logo-box { width: 50px; height: 50px; border: 1px solid #000; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; }
+        .match-info-grid { display: grid; grid-template-columns: 35% 64%; gap: 1%; }
+        .info-row { display: flex; align-items: center; margin-bottom: 3px; }
+        .info-row label { white-space: nowrap; margin-right: 5px; font-weight: bold; }
+
+        .body-grid { display: grid; grid-template-columns: 55% 44%; gap: 1%; }
+
+        table { width: 100%; border-collapse: collapse; text-align: center; table-layout: fixed; }
+        th, td { border: 1px solid var(--border-color); padding: 1px; height: 18px; }
+        th { background-color: var(--bg-gray); font-weight: bold; font-size: 9px; }
+
+        .team-box { border: 2px solid var(--border-color); margin-bottom: 5px; }
+        .team-header { background-color: var(--bg-gray); padding: 3px 5px; border-bottom: 2px solid var(--border-color); font-weight: bold; font-size: 12px; display: flex; }
+        .team-header input { width: 80%; margin-left: 5px; }
+
+        .team-fouls-container { display: flex; padding: 5px; border-bottom: 2px solid var(--border-color); align-items: stretch; }
+        .timeouts { width: 36%; border-right: 1px solid #000; padding-right: 5px; }
+        .team-fouls { width: 64%; padding-left: 5px; display: flex; flex-direction: column; justify-content: center; gap: 5px; }
+        
+        .foul-row { display: flex; align-items: center; justify-content: center; margin-bottom: 2px; }
+        .timeout-row { display: flex; align-items: center; justify-content: flex-start; gap: 5px; margin-bottom: 3px; }
+        .timeout-row label { font-size: 10px; font-weight: bold; white-space: nowrap; }
+
+        .foul-boxes { display: flex; gap: 4px; margin-left: 5px; }
+        .foul-box {
+            width: 18px; height: 18px; border: 1px solid #000; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-weight: bold; font-size: 14px; background-color: #fff; user-select: none; position: relative; color: red;
+        }
+        .foul-box.watermark::before {
+            content: attr(data-num); position: absolute; color: #ccc; font-size: 10px; z-index: 0;
+        }
+        .foul-box.foul-marked::before { opacity: 0; }
+        .foul-box span { position: absolute; inset: 0; z-index: 1; pointer-events: none; --foul-mark-color: #dc2626; }
+        .foul-box span.team-foul-x::before,
+        .foul-box span.team-foul-x::after {
+            content: ''; position: absolute; top: 50%; left: 50%; width: 2px; height: 23px;
+            background: var(--foul-mark-color); border-radius: 2px; transform-origin: center;
+        }
+        .foul-box span.team-foul-x::before { transform: translate(-50%, -50%) rotate(45deg); }
+        .foul-box span.team-foul-x::after { transform: translate(-50%, -50%) rotate(-45deg); }
+        .foul-box span.team-foul-double::before,
+        .foul-box span.team-foul-double::after {
+            content: ''; position: absolute; left: 1px; right: 1px; height: 2px;
+            background: var(--foul-mark-color); border-radius: 2px;
+        }
+        .foul-box span.team-foul-double::before { top: 5px; }
+        .foul-box span.team-foul-double::after { bottom: 5px; }
+        
+        .timeout-box { width: 18px; height: 18px; border: 1px solid #000; display: flex; align-items: center; justify-content: center; background-color: #fff; position: relative; }
+        .timeout-box input { text-align: center; width: 100%; height: 100%; font-size: 11px; color: #1e3a8a; border: none; outline: none; background: transparent; font-weight: bold; }
+
+        .col-lic { width: 8%; } .col-name { width: 50%; text-align: left !important; padding-left: 5px !important; } .col-num { width: 7%; } .col-in { width: 5%; cursor: pointer; position: relative; } .col-foul { width: 6%; cursor: pointer; position: relative; }
+        .col-foul input { font-size: 13px !important; }
+        .col-in input { font-size: 14px !important; }
+        .player-name-input, .player-number-input { color: #000 !important; }
+        .entry-circle { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 16px; height: 16px; border: 2px solid #dc2626; border-radius: 50%; pointer-events: none; z-index: 2; }
+        .double-horizontal-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; --double-mark-color: #dc2626; }
+        .double-horizontal-overlay::before,
+        .double-horizontal-overlay::after { content: ''; position: absolute; left: 0; right: 0; height: 2px; background: var(--double-mark-color); }
+        .double-horizontal-overlay::before { top: 4px; }
+        .double-horizontal-overlay::after { bottom: 4px; }
+        .single-horizontal-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 3; --single-mark-color: #dc2626; }
+        .single-horizontal-overlay::before { content: ''; position: absolute; left: 0; right: 0; top: 50%; height: 2px; background: var(--single-mark-color); transform: translateY(-50%); }
+
+        .score-box { border: 2px solid var(--border-color); height: 100%; }
+        .score-title { background-color: var(--bg-gray); text-align: center; padding: 4px; font-weight: bold; border-bottom: 2px solid var(--border-color); font-size: 11px; }
+        .score-table th { width: 12.5%; } /* 8 colunas mescladas (2 cada) */
+        .score-table td { height: 16px; padding: 0; position: relative; }
+        .score-table input { text-align: center; font-size: 12px; height: 100%; width: 100%; }
+        
+        .input-A { color: var(--team-a-color) !important; }
+        .input-B { color: var(--team-b-color) !important; }
+        
+        .score-num { font-weight: bold; background-color: var(--bg-gray); font-size: 10px; cursor: pointer; user-select: none; color: #000 !important; }
+        
+        /* Riscos diagonais */
+        .score-crossed-A { position: relative; color: #000 !important; }
+        .score-crossed-A::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top left, transparent 45%, var(--mark-color, var(--team-a-color)) 45%, var(--mark-color, var(--team-a-color)) 55%, transparent 55%); pointer-events: none; }
+        
+        .score-crossed-B { position: relative; color: #000 !important; }
+        .score-crossed-B::after { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: linear-gradient(to top left, transparent 45%, var(--mark-color, var(--team-b-color)) 45%, var(--mark-color, var(--team-b-color)) 55%, transparent 55%); pointer-events: none; }
+
+        /* Círculos manuais/automáticos (Aplicados na célula que contém o input ou no numero cinza) */
+        .score-circled-A { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; border: 2px solid var(--mark-color, var(--team-a-color)); border-radius: 50%; pointer-events: none; z-index: 5; }
+        .score-circled-B { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 14px; height: 14px; border: 2px solid var(--mark-color, var(--team-b-color)); border-radius: 50%; pointer-events: none; z-index: 5; }
+
+        .score-dot-A { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 9px; height: 9px; background-color: var(--mark-color, var(--team-a-color)); border-radius: 50%; pointer-events: none; z-index: 6; }
+        .score-dot-B { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); width: 9px; height: 9px; background-color: var(--mark-color, var(--team-b-color)); border-radius: 50%; pointer-events: none; z-index: 6; }
+        .period-red { color: var(--team-a-color) !important; }
+        .period-blue { color: var(--team-b-color) !important; }
+        .final-result-input { color: #000 !important; }
+        .extra-period-input { color: #dc2626 !important; }
+
+        .footer-grid { display: grid; grid-template-columns: 50% 50%; border: 2px solid var(--border-color); margin-top: 5px; }
+        .footer-left, .footer-right { padding: 5px 10px; }
+        .footer-left { border-right: 2px solid var(--border-color); }
+        .signature-line { display: flex; align-items: flex-end; margin-bottom: 5px; }
+        .signature-line input { border-bottom: 1px solid var(--border-color); margin-left: 5px; }
+        .signature-line[data-signature-role] { position: relative; min-height: 18px; }
+        .signature-line[data-signature-role] input { padding-right: 31px; }
+        .signature-line.has-signature input { color: transparent !important; }
+        .signature-image { display: none; position: absolute; left: 76px; right: 30px; bottom: 1px; width: calc(100% - 106px); height: 28px; object-fit: contain; object-position: center bottom; pointer-events: none; }
+        .signature-line.has-signature .signature-image { display: block; }
+        .signature-trigger { flex: 0 0 26px; width: 26px; height: 22px; border: 0; border-radius: 4px; margin-left: 4px; background: #0f766e; color: #fff; cursor: pointer; font-size: 12px; }
+        .signature-modal { width: min(620px, 94vw); text-align: left; }
+        .signature-modal canvas { display: block; width: 100%; height: 180px; margin: 12px 0; background: #fff; border: 2px dashed #64748b; border-radius: 8px; touch-action: none; }
+        .signature-modal input { border: 1px solid #94a3b8 !important; border-radius: 5px; padding: 9px !important; color: #000 !important; background: #fff !important; }
+        .signature-actions { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+        .results-box { text-align: center; margin-bottom: 5px; }
+        .results-row { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 2px; }
+        .results-row input { border-bottom: 1px solid #000; width: 30px; text-align: center; }
+
+        /* Modais */
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); display: none; justify-content: center; align-items: center; z-index: 2000; }
+        .modal-content { background: white; padding: 20px; border-radius: 8px; width: 300px; text-align: center; box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
+        .analysis-modal { width: min(760px, 94vw); max-height: 92vh; overflow-y: auto; text-align: left; }
+        .analysis-toolbar { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
+        .analysis-toolbar .btn { padding: 9px 7px; font-size: 11px; }
+        .analysis-question { display: flex; gap: 8px; margin-top: 10px; }
+        .analysis-question input { border: 1px solid #cbd5e1 !important; border-radius: 5px; padding: 9px !important; font-size: 12px !important; color: #000 !important; background: #fff !important; }
+        .analysis-output { margin-top: 12px; font-size: 12px; text-align: left; background: #f1f5f9; padding: 12px; border-radius: 7px; }
+        .analysis-summary-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 12px; }
+        .analysis-card { background: #fff; border: 1px solid #cbd5e1; border-radius: 6px; padding: 9px; }
+        .analysis-card strong { display: block; color: #0f172a; margin-bottom: 3px; }
+        .analysis-report h4 { text-align: left; margin: 12px 0 5px; font-size: 13px; color: #0f172a; }
+        .analysis-report ul, .analysis-report ol { padding-left: 20px; }
+        .analysis-report li { margin-bottom: 4px; }
+        .analysis-chart-container { margin-top: 12px; background: #fff; border: 1px solid #cbd5e1; border-radius: 7px; padding: 8px; }
+        #analysis-chart { display: block; width: 100%; height: auto; max-height: 320px; }
+        
+        #fiba-keyboard { display: none; flex: 0 0 auto; background: #1e293b; padding: 10px 12px; gap: 8px; width: 100%; max-height: 52vh; overflow-y: auto; z-index: 2000; box-shadow: 0 -5px 15px rgba(0,0,0,0.5); border: 2px solid #334155; border-radius: 10px 10px 0 0; }
+        #fiba-keyboard.open { display: flex; flex-direction: column; }
+        .fiba-sections { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; }
+        .fiba-section-block { min-width: 0; padding: 8px; background: rgba(255,255,255,.04); border-radius: 7px; }
+        .fiba-section-title { width: 100%; color: #cbd5e1; font-size: 10px; font-weight: bold; letter-spacing: .08em; text-align: left; }
+        .fiba-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; width: 100%; margin-top: 7px; }
+        .fiba-key { background: #cbd5e1; border: none; padding: 10px; font-size: 16px; font-weight: bold; border-radius: 5px; cursor: pointer; width: 45px; }
+        .fiba-key:hover { background: #f8fafc; }
+        .fiba-delete { width: 100px; background: #f59e0b; color: #111827; }
+        .fiba-color { width: 90px; color: white; font-size: 13px; padding: 10px 5px; white-space: nowrap; }
+        .fiba-color.active { outline: 3px solid #fff; outline-offset: 2px; }
+        .fiba-entry-key { width: 92px; height: 44px; display: inline-flex; align-items: center; justify-content: center; }
+        .entry-key-preview { width: 24px; height: 24px; display: inline-flex; align-items: center; justify-content: center; font-size: 20px; font-weight: bold; line-height: 1; position: relative; }
+        .entry-key-red { color: #dc2626; }
+        .entry-key-blue { color: #2563eb; }
+        .entry-key-circled { color: #2563eb; border: 2px solid #dc2626; border-radius: 50%; }
+        .fiba-player-color { width: 90px; color: #fff; font-size: 12px; padding: 10px 5px; }
+        .fiba-player-color.active { outline: 3px solid #fff; outline-offset: 2px; }
+        .fiba-actions { display: flex; align-items: stretch; justify-content: center; gap: 8px; width: 100%; }
+        .fiba-actions .fiba-delete { flex: 0 0 120px; }
+        .fiba-bulk-fill { width: 100%; border: none; border-radius: 5px; padding: 10px; background: #047857; color: #fff; font-size: 12px; font-weight: bold; cursor: pointer; }
+        .fiba-bulk-fill.active { background: #7c3aed; }
+        .fiba-close { flex: 1 1 auto; background: #ef4444; color: white; border: none; padding: 10px; border-radius: 5px; cursor: pointer; font-weight: bold; }
+
+        @media screen and (min-width: 1200px) {
+            body.keyboard-open { flex-direction: row; align-items: stretch; }
+            body.keyboard-open .sheet-viewport { height: 100vh; flex: 1 1 auto; }
+            body.keyboard-open .controls { right: 410px; }
+            #fiba-keyboard.open { width: 390px; height: 100vh; max-height: 100vh; flex: 0 0 390px; border-radius: 10px 0 0 10px; box-shadow: -5px 0 15px rgba(0,0,0,.45); }
+            #fiba-keyboard .fiba-sections { grid-template-columns: 1fr; }
+        }
+
+        @media screen and (max-width: 520px) {
+            .sheet-viewport { padding: 8px; justify-content: flex-start; align-items: flex-start; overflow-x: auto; overflow-y: auto; touch-action: auto; }
+            .page-container { width: 210mm; min-width: 210mm; flex-basis: 210mm; margin: 0; }
+            body.keyboard-open .sheet-viewport { height: auto; flex: 1 1 auto; }
+            #fiba-keyboard { flex: 0 0 min(46dvh, 390px); max-height: 46dvh; padding: 8px; }
+            .fiba-sections { grid-template-columns: 1fr; }
+            .fiba-entry-key { width: 82px; }
+            .fiba-actions .fiba-delete { flex-basis: 105px; }
+            .keyboard-launcher { right: 10px; bottom: 10px; padding: 11px 14px; }
+            .analysis-toolbar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .analysis-summary-grid { grid-template-columns: 1fr; }
+            .analysis-question { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Botões Flutuantes -->
+    <div class="controls no-print">
+        <button class="btn" onclick="window.print()">🖨️ Imprimir / PDF</button>
+        <button class="btn btn-red" onclick="showClearModal()">🗑️ Limpar Súmula</button>
+        <button class="btn btn-purple" onclick="showIA()">🤖 Assistente IA</button>
+        <button class="btn btn-red" id="finish-game-button" onclick="finishLinkedGame()">🏁 Encerrar partida</button>
+        <a class="btn" style="background:#1351b4;text-align:center;text-decoration:none" target="_blank" rel="noopener" href="https://www.gov.br/pt-br/servicos/assinatura-eletronica">✓ Assinar PDF no GOV.BR</a>
+    </div>
+    <button id="keyboard-launcher" class="keyboard-launcher no-print" onclick="showKeyboard()">⌨️ ↑ ABRIR TECLADO</button>
+
+    <!-- Container Principal -->
+    <div class="sheet-viewport" id="sheet-viewport">
+      <div class="page-container" id="sumula-container">
+        
+        <!-- CABEÇALHO -->
+        <div class="main-header">
+            <div class="header-top">
+                <div class="logo-box">CBB</div>
+                <div>
+                    <h1>CONFEDERAÇÃO BRASILEIRA DE BASKETBALL</h1>
+                    <h2>FUNDADA EM 22/11/1955</h2>
+                    <h3>SÚMULA DE JOGO</h3>
+                </div>
+                <div class="logo-box">FPB</div>
+            </div>
+
+            <div class="match-info-grid">
+                <div>
+                    <div class="info-row"><label>EQUIPE A:</label> <input type="text" id="header-equipeA" class="border-bottom-input"></div>
+                    <div class="info-row"><label>Competição:</label> <input type="text" id="header-comp" class="border-bottom-input"></div>
+                    <div class="info-row">
+                        <label>Jogo Nº:</label> <input type="text" id="header-jogo" class="border-bottom-input" style="width: 40px; margin-right: 10px;">
+                        <label>Local:</label> <input type="text" id="header-local" class="border-bottom-input">
+                    </div>
+                </div>
+                <div>
+                    <div class="info-row"><label>EQUIPE B:</label> <input type="text" id="header-equipeB" class="border-bottom-input"></div>
+                    <div class="info-row">
+                        <label>Data:</label> <input type="date" id="header-data" class="border-bottom-input" style="width: 90px; margin-right: 5px; color: #1e3a8a; padding: 0;">
+                        <label>Hora:</label> <input type="time" id="header-hora-inicio" class="border-bottom-input" style="width: 60px; color: #1e3a8a; padding: 0;">
+                        <span style="font-weight: bold; margin: 0 3px;">/</span>
+                        <input type="time" id="header-hora-fim" class="border-bottom-input" style="width: 60px; margin-right: 5px; color: #1e3a8a; padding: 0;">
+                        <label>Árbitro:</label> <input type="text" id="header-arbitro" class="border-bottom-input" style="flex: 1; min-width: 100px;">
+                    </div>
+                    <div class="info-row">
+                        <label>Fiscal 1:</label> <input type="text" id="header-fiscal1" class="border-bottom-input" style="margin-right: 10px;">
+                        <label>Fiscal 2:</label> <input type="text" id="header-fiscal2" class="border-bottom-input">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="body-grid">
+            <!-- COLUNA ESQUERDA -->
+            <div class="left-col">
+                
+                <!-- EQUIPE A -->
+                <div class="team-box">
+                    <div class="team-header">
+                        EQUIPE A: <input type="text" id="teamA-name">
+                    </div>
+                    
+                    <div class="team-fouls-container">
+                        <div class="timeouts" style="width: 25%;">
+                            <div style="font-weight: bold; margin-bottom: 4px; text-align: center;">Tempos Debitados</div>
+                            <div class="timeout-row" style="margin-bottom: 5px;">
+                                <div class="foul-boxes" style="margin-left: 0;">
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                </div>
+                            </div>
+                            <div class="timeout-row" style="margin-bottom: 5px;">
+                                <div class="foul-boxes" style="margin-left: 0;">
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                </div>
+                            </div>
+                            <div class="timeout-row">
+                                <div class="foul-boxes" style="margin-left: 0;">
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-fouls" style="width: 75%;">
+                            <div style="font-weight: bold; text-align: center; margin-bottom: 2px;">Faltas da Equipe</div>
+                            <div style="display: flex; justify-content: space-around; margin-bottom: 5px;">
+                                <div class="foul-row"><label style="font-size: 10px; margin-right: 5px; font-weight: normal;">Período</label> <label>1</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                                <div class="foul-row"><label>2</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-around;">
+                                <div class="foul-row"><label style="font-size: 10px; margin-right: 5px; font-weight: normal;">Período</label> <label>3</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                                <div class="foul-row"><label>4</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                            </div>
+                            <div style="display: flex; padding-left: 15px; margin-top: 5px;">
+                                <label style="font-size: 10px; font-weight: normal;">Períodos Extras</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="col-lic">LIC</th>
+                                <th rowspan="2" class="col-name">NOME DOS JOGADORES</th>
+                                <th rowspan="2" class="col-num">Nº</th>
+                                <th rowspan="2" class="col-in">E</th>
+                                <th colspan="5">Faltas</th>
+                            </tr>
+                            <tr>
+                                <th class="col-foul">1</th><th class="col-foul">2</th><th class="col-foul">3</th><th class="col-foul">4</th><th class="col-foul">5</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamA-players"></tbody>
+                    </table>
+
+                    <div style="padding: 5px; border-top: 2px solid var(--border-color);">
+                        <div class="info-row"><label>TEC:</label> <input type="text" id="teamA-tec" class="border-bottom-input"></div>
+                        <div class="info-row"><label>ASS. TEC:</label> <input type="text" class="border-bottom-input"></div>
+                    </div>
+                </div>
+
+                <!-- EQUIPE B -->
+                <div class="team-box" style="margin-bottom: 0;">
+                    <div class="team-header">
+                        EQUIPE B: <input type="text" id="teamB-name">
+                    </div>
+                    
+                    <div class="team-fouls-container">
+                        <div class="timeouts" style="width: 25%;">
+                            <div style="font-weight: bold; margin-bottom: 4px; text-align: center;">Tempos Debitados</div>
+                            <div class="timeout-row" style="margin-bottom: 5px;">
+                                <div class="foul-boxes" style="margin-left: 0;">
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                </div>
+                            </div>
+                            <div class="timeout-row" style="margin-bottom: 5px;">
+                                <div class="foul-boxes" style="margin-left: 0;">
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                </div>
+                            </div>
+                            <div class="timeout-row">
+                                <div class="foul-boxes" style="margin-left: 0;">
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                    <div class="timeout-box"><input type="text" maxlength="2" onclick="openKeyboard(this)"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="team-fouls" style="width: 75%;">
+                            <div style="font-weight: bold; text-align: center; margin-bottom: 2px;">Faltas da Equipe</div>
+                            <div style="display: flex; justify-content: space-around; margin-bottom: 5px;">
+                                <div class="foul-row"><label style="font-size: 10px; margin-right: 5px; font-weight: normal;">Período</label> <label>1</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                                <div class="foul-row"><label>2</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                            </div>
+                            <div style="display: flex; justify-content: space-around;">
+                                <div class="foul-row"><label style="font-size: 10px; margin-right: 5px; font-weight: normal;">Período</label> <label>3</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                                <div class="foul-row"><label>4</label> <div class="foul-boxes"><div class="foul-box watermark" data-num="1" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="2" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="3" onclick="toggleTeamFoul(this)"><span></span></div><div class="foul-box watermark" data-num="4" onclick="toggleTeamFoul(this)"><span></span></div></div></div>
+                            </div>
+                            <div style="display: flex; padding-left: 15px; margin-top: 5px;">
+                                <label style="font-size: 10px; font-weight: normal;">Períodos Extras</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <table>
+                        <thead>
+                            <tr>
+                                <th rowspan="2" class="col-lic">LIC</th>
+                                <th rowspan="2" class="col-name">NOME DOS JOGADORES</th>
+                                <th rowspan="2" class="col-num">Nº</th>
+                                <th rowspan="2" class="col-in">E</th>
+                                <th colspan="5">Faltas</th>
+                            </tr>
+                            <tr>
+                                <th class="col-foul">1</th><th class="col-foul">2</th><th class="col-foul">3</th><th class="col-foul">4</th><th class="col-foul">5</th>
+                            </tr>
+                        </thead>
+                        <tbody id="teamB-players"></tbody>
+                    </table>
+
+                    <div style="padding: 5px; border-top: 2px solid var(--border-color);">
+                        <div class="info-row"><label>TEC:</label> <input type="text" id="teamB-tec" class="border-bottom-input"></div>
+                        <div class="info-row"><label>ASS. TEC:</label> <input type="text" class="border-bottom-input"></div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- COLUNA DIREITA: PONTUAÇÃO -->
+            <div class="right-col">
+                <div class="score-box">
+                    <div class="score-title">CONTAGEM PROGRESSIVA</div>
+                    <table class="score-table">
+                        <thead>
+                            <tr>
+                                <th colspan="2">A</th><th colspan="2">B</th>
+                                <th colspan="2">A</th><th colspan="2">B</th>
+                                <th colspan="2">A</th><th colspan="2">B</th>
+                                <th colspan="2">A</th><th colspan="2">B</th>
+                            </tr>
+                        </thead>
+                        <tbody id="running-score"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- RODAPÉ -->
+        <div class="footer-grid">
+            <div class="footer-left">
+                <div class="signature-line" data-signature-role="apontador"><label>Apontador:</label> <input type="text" id="apontador"><img class="signature-image" id="signature-image-apontador" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('apontador')" title="Assinar como apontador">✍</button></div>
+                <div class="signature-line" data-signature-role="cronometrista"><label>Cronometrista:</label> <input type="text" id="cronometrista"><img class="signature-image" id="signature-image-cronometrista" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('cronometrista')" title="Assinar como cronometrista">✍</button></div>
+                <div class="signature-line" data-signature-role="operador"><label>Operador de 24":</label> <input type="text" id="operador"><img class="signature-image" id="signature-image-operador" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('operador')" title="Assinar como operador de 24 segundos">✍</button></div>
+                <div class="signature-line" data-signature-role="representante"><label>Representante:</label> <input type="text" id="representante"><img class="signature-image" id="signature-image-representante" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('representante')" title="Assinar como representante">✍</button></div>
+                <hr style="margin: 8px 0; border: 0; border-top: 1px solid var(--border-color);">
+                <div class="signature-line" data-signature-role="arbitro"><label>Árbitro:</label> <input type="text" id="assinatura-arbitro"><img class="signature-image" id="signature-image-arbitro" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('arbitro')" title="Assinar como árbitro">✍</button></div>
+                <div style="display: flex; gap: 10px;">
+                    <div class="signature-line" data-signature-role="fiscal1" style="flex:1"><label>Fiscal 1:</label> <input type="text" id="assinatura-fiscal1"><img class="signature-image" id="signature-image-fiscal1" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('fiscal1')" title="Assinar como fiscal 1">✍</button></div>
+                    <div class="signature-line" data-signature-role="fiscal2" style="flex:1"><label>Fiscal 2:</label> <input type="text" id="assinatura-fiscal2"><img class="signature-image" id="signature-image-fiscal2" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('fiscal2')" title="Assinar como fiscal 2">✍</button></div>
+                </div>
+                <div class="signature-line" data-signature-role="capitao"><label>Assinatura do Capitão (Protesto):</label> <input type="text" id="assinatura-capitao"><img class="signature-image" id="signature-image-capitao" alt=""><button class="signature-trigger no-print" onclick="openSignaturePad('capitao')" title="Assinatura do capitão">✍</button></div>
+            </div>
+            
+            <div class="footer-right">
+                <div class="results-box">
+                    <h4>RESULTADOS</h4>
+                    <div class="results-row period-red"><label>Período 1:</label> A <input type="text" id="p1-a" class="period-red"> B <input type="text" id="p1-b" class="period-red"></div>
+                    <div class="results-row period-blue"><label>Período 2:</label> A <input type="text" id="p2-a" class="period-blue"> B <input type="text" id="p2-b" class="period-blue"></div>
+                    <div class="results-row period-red"><label>Período 3:</label> A <input type="text" id="p3-a" class="period-red"> B <input type="text" id="p3-b" class="period-red"></div>
+                    <div class="results-row period-blue"><label>Período 4:</label> A <input type="text" id="p4-a" class="period-blue"> B <input type="text" id="p4-b" class="period-blue"></div>
+                    <div class="results-row"><label>Períodos Extras:</label> A <input type="text" id="extra-a" class="extra-period-input"> B <input type="text" id="extra-b" class="extra-period-input"></div>
+                </div>
+                <div style="border-top: 2px solid var(--border-color); padding-top: 5px; margin-top: 5px;">
+                    <div class="results-row"><label>Resultado Final:</label> Equipe A <input type="text" id="res-a" class="final-result-input" style="width: 40px; border-bottom: 1px solid #000;"> Equipe B <input type="text" id="res-b" class="final-result-input" style="width: 40px; border-bottom: 1px solid #000;"></div>
+                    <div class="signature-line" style="margin-top: 5px; justify-content: center;"><label>Equipe Vencedora:</label> <input type="text" id="vencedor" class="final-result-input" style="width: 60%;"></div>
+                </div>
+            </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- TECLADO FIBA -->
+    <div id="fiba-keyboard" class="no-print">
+        <div style="color:#fff; font-size:11px; text-align:center;">Selecione uma caixa da súmula e escolha a marcação.</div>
+        <div class="fiba-sections">
+            <div class="fiba-section-block">
+                <div class="fiba-section-title">ENTRADA (E)</div>
+                <div class="fiba-row">
+                    <button class="fiba-key fiba-entry-key" title="X vermelho" onclick="insertEntryMark('red')"><span class="entry-key-preview entry-key-red">X</span></button>
+                    <button class="fiba-key fiba-entry-key" title="X azul" onclick="insertEntryMark('blue')"><span class="entry-key-preview entry-key-blue">X</span></button>
+                    <button class="fiba-key fiba-entry-key" title="X azul com círculo vermelho" onclick="insertEntryMark('blue-red-circle')"><span class="entry-key-preview entry-key-circled">X</span></button>
+                </div>
+            </div>
+            <div class="fiba-section-block">
+                <div class="fiba-section-title">SÍMBOLOS</div>
+                <div class="fiba-row">
+                    <button class="fiba-key" title="Um traço horizontal" onclick="insertFibaSymbol('─')">─</button>
+                    <button class="fiba-key" title="Dois traços horizontais" onclick="insertFibaSymbol('═')">═</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('P')">P</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('P1')">P1</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('P2')">P2</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('P3')">P3</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('T1')">T1</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('U2')">U2</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('D2')">D2</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('C1')">C1</button>
+                    <button class="fiba-key" onclick="insertFibaSymbol('B1')">B1</button>
+                </div>
+            </div>
+            <div class="fiba-section-block">
+                <div class="fiba-section-title">COR DAS FALTAS</div>
+                <div class="fiba-row">
+                    <button class="fiba-key fiba-color active" id="foul-red" style="background:#dc2626" onclick="setFoulColor('red')">VERMELHO</button>
+                    <button class="fiba-key fiba-color" id="foul-blue" style="background:#2563eb" onclick="setFoulColor('blue')">AZUL</button>
+                </div>
+            </div>
+            <div class="fiba-section-block">
+                <div class="fiba-section-title">COR DO NOME / Nº</div>
+                <div class="fiba-row">
+                    <button class="fiba-key fiba-player-color active" id="player-black" style="background:#111827" onclick="setPlayerColor('black')">PRETO</button>
+                    <button class="fiba-key fiba-player-color" id="player-blue" style="background:#2563eb" onclick="setPlayerColor('blue')">AZUL</button>
+                    <button class="fiba-key fiba-player-color" id="player-red" style="background:#dc2626" onclick="setPlayerColor('red')">VERMELHO</button>
+                </div>
+            </div>
+            <div class="fiba-section-block">
+                <div class="fiba-section-title">COR DO PERÍODO EXTRA</div>
+                <div class="fiba-row">
+                    <button class="fiba-key fiba-color active" id="extra-red" style="background:#dc2626" onclick="setExtraPeriodColor('red')">VERMELHO</button>
+                    <button class="fiba-key fiba-color" id="extra-blue" style="background:#2563eb" onclick="setExtraPeriodColor('blue')">AZUL</button>
+                </div>
+            </div>
+            <div class="fiba-section-block">
+                <div class="fiba-section-title">COR DO RESULTADO FINAL</div>
+                <div class="fiba-row">
+                    <button class="fiba-key fiba-player-color active" id="final-black" style="background:#111827" onclick="setFinalResultColor('black')">PRETO</button>
+                    <button class="fiba-key fiba-player-color" id="final-blue" style="background:#2563eb" onclick="setFinalResultColor('blue')">AZUL</button>
+                    <button class="fiba-key fiba-player-color" id="final-red" style="background:#dc2626" onclick="setFinalResultColor('red')">VERMELHO</button>
+                </div>
+            </div>
+        </div>
+        <button id="fill-empty-fouls" class="fiba-bulk-fill" onclick="toggleEmptyFoulMarks()">─ PREENCHER FALTAS VAZIAS</button>
+        <div class="fiba-actions">
+            <button class="fiba-key fiba-delete" onclick="deleteCurrentInput()">⌫ APAGAR</button>
+            <button class="fiba-close" onclick="closeKeyboard()">↓ RECOLHER TECLADO</button>
+        </div>
+    </div>
+
+    <!-- MODAL DE LIMPEZA -->
+    <div class="modal-overlay" id="confirmModal">
+        <div class="modal-content">
+            <h3 style="color: #dc2626;">🗑️ Limpar Súmula</h3>
+            <p>Tem certeza que deseja apagar todos os dados preenchidos?</p>
+            <div style="margin-top: 20px; display: flex; gap: 10px; justify-content: center;">
+                <button class="btn" style="background: #64748b;" onclick="document.getElementById('confirmModal').style.display='none'">Cancelar</button>
+                <button class="btn btn-red" onclick="executarLimpeza()">Apagar Tudo</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE IA -->
+    <div class="modal-overlay" id="iaModal">
+        <div class="modal-content analysis-modal">
+            <h3 style="color: #9333ea;">📊 Assistente Inteligente da Súmula</h3>
+            <p style="text-align:center;">Análise calculada diretamente a partir da pontuação, dos jogadores e das faltas preenchidas.</p>
+            <div class="analysis-toolbar">
+                <button class="btn btn-purple" onclick="renderGameAnalysis('summary')">Analisar partida</button>
+                <button class="btn" style="background-color:#047857;" onclick="renderGameAnalysis('technical')">Relatório técnico</button>
+                <button class="btn" style="background-color:#0369a1;" onclick="downloadAnalysisCSV()">Baixar planilha CSV</button>
+                <button class="btn" style="background-color:#b45309;" onclick="downloadAnalysisChart()">Baixar gráfico PNG</button>
+            </div>
+            <div class="analysis-question">
+                <input type="text" id="ia-pergunta" placeholder="Ex.: Quem foi o maior pontuador? Quem devemos marcar?">
+                <button class="btn" style="background-color:#334155;" onclick="answerAnalysisQuestion()">Perguntar aos dados</button>
+            </div>
+            <div id="ia-resposta" class="analysis-output"></div>
+            <button class="btn" style="margin-top: 15px; background: #ef4444; width: 100%;" onclick="document.getElementById('iaModal').style.display='none'">Fechar</button>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="signatureModal">
+        <div class="modal-content signature-modal">
+            <h3 id="signature-title">Assinatura</h3>
+            <p>Assine com o dedo, caneta ou mouse. A assinatura ficará vinculada a esta partida e aparecerá na impressão.</p>
+            <label>Nome de quem está assinando<input type="text" id="signature-name" maxlength="100"></label>
+            <canvas id="signature-canvas" width="720" height="220" aria-label="Área para desenhar a assinatura"></canvas>
+            <div class="signature-actions">
+                <button class="btn" style="background:#64748b" onclick="clearSignatureCanvas()">Limpar desenho</button>
+                <button class="btn btn-red" onclick="removeCurrentSignature()">Excluir assinatura</button>
+                <button class="btn" style="background:#047857" onclick="saveSignaturePad()">Salvar assinatura</button>
+                <button class="btn" style="background:#334155" onclick="closeSignaturePad()">Cancelar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Teclado FIBA Flutuante
+        let currentInput = null;
+        let selectedFoulColor = 'red';
+        let selectedPlayerColor = 'black';
+        let selectedExtraPeriodColor = 'red';
+        let selectedFinalResultColor = 'black';
+        let currentPeriod = 1;
+
+        const interfaceColors = {
+            red: '#dc2626',
+            blue: '#2563eb',
+            black: '#000000'
+        };
+
+        function getPeriodMarkColor(period) {
+            return Number(period) % 2 === 1 ? '#dc2626' : '#2563eb';
+        }
+
+        function getPeriodColor() {
+            return getPeriodMarkColor(currentPeriod);
+        }
+
+        function setFoulColor(color) {
+            selectedFoulColor = color;
+            document.getElementById('foul-red').classList.toggle('active', color === 'red');
+            document.getElementById('foul-blue').classList.toggle('active', color === 'blue');
+        }
+
+        function updatePlayerColorButtons(color) {
+            ['black', 'blue', 'red'].forEach(option => {
+                document.getElementById('player-' + option).classList.toggle('active', option === color);
+            });
+        }
+
+        function setPlayerColor(color) {
+            selectedPlayerColor = color;
+            updatePlayerColorButtons(color);
+
+            if (!currentInput || !currentInput.classList.contains('player-text-input')) return;
+            const row = currentInput.closest('tr');
+            row.querySelectorAll('.player-text-input').forEach(input => {
+                input.dataset.playerColor = color;
+                input.style.setProperty('color', interfaceColors[color], 'important');
+            });
+        }
+
+        function setExtraPeriodColor(color) {
+            selectedExtraPeriodColor = color;
+            document.getElementById('extra-red').classList.toggle('active', color === 'red');
+            document.getElementById('extra-blue').classList.toggle('active', color === 'blue');
+            document.querySelectorAll('.extra-period-input').forEach(input => {
+                input.style.setProperty('color', interfaceColors[color], 'important');
+            });
+        }
+
+        function setFinalResultColor(color) {
+            selectedFinalResultColor = color;
+            ['black', 'blue', 'red'].forEach(option => {
+                document.getElementById('final-' + option).classList.toggle('active', option === color);
+            });
+            document.querySelectorAll('.final-result-input').forEach(input => {
+                input.style.setProperty('color', interfaceColors[color], 'important');
+            });
+        }
+
+        function openPlayerKeyboard(inputElement) {
+            const savedColor = inputElement.dataset.playerColor || 'black';
+            selectedPlayerColor = savedColor;
+            updatePlayerColorButtons(savedColor);
+            openKeyboard(inputElement);
+        }
+
+        function removeEntryCircle(inputElement) {
+            const entryCell = inputElement ? inputElement.closest('.col-in') : null;
+            const circle = entryCell ? entryCell.querySelector('.entry-circle') : null;
+            if (circle) circle.remove();
+        }
+
+        function removeHorizontalMark(inputElement) {
+            if (!inputElement || !inputElement.parentElement) return;
+            inputElement.parentElement.querySelectorAll('.single-horizontal-overlay, .double-horizontal-overlay').forEach(mark => mark.remove());
+            delete inputElement.dataset.singleHorizontalMark;
+            delete inputElement.dataset.doubleHorizontalMark;
+            delete inputElement.dataset.autoFoulFill;
+            delete inputElement.dataset.autoTimeoutFill;
+        }
+
+        function applySingleHorizontalMark(inputElement) {
+            if (!inputElement || !inputElement.parentElement) return;
+            removeHorizontalMark(inputElement);
+            inputElement.value = '';
+            inputElement.dataset.singleHorizontalMark = 'true';
+            const mark = document.createElement('span');
+            mark.className = 'single-horizontal-overlay';
+            mark.style.setProperty('--single-mark-color', interfaceColors[selectedFoulColor]);
+            inputElement.parentElement.appendChild(mark);
+        }
+
+        function applyDoubleHorizontalMark(inputElement) {
+            if (!inputElement || !inputElement.parentElement) return;
+            removeHorizontalMark(inputElement);
+            inputElement.value = '';
+            inputElement.dataset.doubleHorizontalMark = 'true';
+            const mark = document.createElement('span');
+            mark.className = 'double-horizontal-overlay';
+            mark.style.setProperty('--double-mark-color', interfaceColors[selectedFoulColor]);
+            inputElement.parentElement.appendChild(mark);
+        }
+
+        function applyAutomaticTimeoutMark(inputElement) {
+            if (!inputElement || !inputElement.parentElement || inputElement.value.trim()) return;
+            const hasManualMark = inputElement.dataset.singleHorizontalMark ||
+                (inputElement.dataset.doubleHorizontalMark && !inputElement.dataset.autoTimeoutFill);
+            if (hasManualMark) return;
+            removeHorizontalMark(inputElement);
+            inputElement.dataset.doubleHorizontalMark = 'true';
+            inputElement.dataset.autoTimeoutFill = 'true';
+            const mark = document.createElement('span');
+            mark.className = 'double-horizontal-overlay';
+            mark.style.setProperty('--double-mark-color', interfaceColors.blue);
+            inputElement.parentElement.appendChild(mark);
+        }
+
+        function syncTimeoutAutoMark(inputElement) {
+            if (!inputElement?.closest('.timeout-box')) return;
+            if (inputElement.value.trim()) {
+                removeHorizontalMark(inputElement);
+                return;
+            }
+            applyAutomaticTimeoutMark(inputElement);
+        }
+
+        function setTeamFoulAutoDouble(element, period) {
+            const span = element.querySelector('span');
+            const periodColor = getPeriodMarkColor(period || element.dataset.period || 2);
+            element.dataset.period = String(period || element.dataset.period || 2);
+            element.classList.add('foul-marked');
+            span.dataset.state = 'auto-double';
+            span.classList.remove('team-foul-x');
+            span.classList.add('team-foul-double');
+            span.style.setProperty('--foul-mark-color', periodColor);
+        }
+
+        function initializeAutomaticClosureMarks() {
+            document.querySelectorAll('.timeout-box input').forEach(input => {
+                if (!input.dataset.timeoutListener) {
+                    input.addEventListener('input', () => syncTimeoutAutoMark(input));
+                    input.dataset.timeoutListener = 'true';
+                }
+                syncTimeoutAutoMark(input);
+            });
+
+            document.querySelectorAll('.team-fouls .foul-row').forEach(row => {
+                const periodLabel = Array.from(row.querySelectorAll('label'))
+                    .map(label => label.textContent.trim())
+                    .find(text => /^[1-4]$/.test(text));
+                if (!periodLabel) return;
+                row.querySelectorAll('.foul-box').forEach(box => {
+                    const state = box.querySelector('span')?.dataset.state;
+                    if (!state || state === 'empty' || state === 'auto-double') {
+                        setTeamFoulAutoDouble(box, Number(periodLabel));
+                    }
+                });
+            });
+        }
+
+        function resetBulkFillButton() {
+            const button = document.getElementById('fill-empty-fouls');
+            if (!button) return;
+            button.classList.remove('active');
+            button.textContent = '─ PREENCHER FALTAS VAZIAS';
+        }
+
+        function toggleEmptyFoulMarks() {
+            const autoFilled = Array.from(document.querySelectorAll('td.col-foul input[data-auto-foul-fill="true"]'));
+            const button = document.getElementById('fill-empty-fouls');
+
+            if (autoFilled.length) {
+                autoFilled.forEach(input => removeHorizontalMark(input));
+                resetBulkFillButton();
+                return;
+            }
+
+            let filledCount = 0;
+            ['teamA-players', 'teamB-players'].forEach(tbodyId => {
+                document.querySelectorAll(`#${tbodyId} tr`).forEach(row => {
+                    const name = row.querySelector('.player-name-input')?.value.trim();
+                    const number = row.querySelector('.player-number-input')?.value.trim();
+                    if (!name && !number) return;
+
+                    row.querySelectorAll('td.col-foul input').forEach(input => {
+                        const hasMark = input.dataset.singleHorizontalMark || input.dataset.doubleHorizontalMark;
+                        if (input.value.trim() || hasMark) return;
+                        applySingleHorizontalMark(input);
+                        input.dataset.autoFoulFill = 'true';
+                        filledCount++;
+                    });
+                });
+            });
+
+            if (filledCount) {
+                button.classList.add('active');
+                button.textContent = `↶ REMOVER ${filledCount} TRAÇOS AUTOMÁTICOS`;
+            } else {
+                button.textContent = 'NENHUMA FALTA VAZIA ENCONTRADA';
+                window.setTimeout(resetBulkFillButton, 1600);
+            }
+        }
+
+        function deleteCurrentInput() {
+            if (!currentInput) return;
+            const playerColor = currentInput.dataset.playerColor || 'black';
+            const isPlayerText = currentInput.classList.contains('player-text-input');
+            currentInput.value = '';
+            currentInput.style.removeProperty('color');
+            currentInput.style.removeProperty('font-weight');
+            if (isPlayerText) {
+                currentInput.style.setProperty('color', interfaceColors[playerColor], 'important');
+            }
+            removeEntryCircle(currentInput);
+            removeHorizontalMark(currentInput);
+            currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        function showKeyboard() {
+            document.body.classList.add('keyboard-open');
+            document.getElementById('fiba-keyboard').classList.add('open');
+            document.getElementById('keyboard-launcher').classList.add('hidden');
+        }
+
+        function openKeyboard(inputElement) {
+            currentInput = inputElement;
+            showKeyboard();
+            window.setTimeout(() => {
+                const viewport = document.getElementById('sheet-viewport');
+                const inputRect = inputElement.getBoundingClientRect();
+                const viewportRect = viewport.getBoundingClientRect();
+                viewport.scrollBy({
+                    left: inputRect.left - viewportRect.left - (viewport.clientWidth - inputRect.width) / 2,
+                    top: inputRect.top - viewportRect.top - (viewport.clientHeight - inputRect.height) / 2,
+                    behavior: 'smooth'
+                });
+            }, 50);
+        }
+
+        function closeKeyboard() {
+            document.body.classList.remove('keyboard-open');
+            document.getElementById('fiba-keyboard').classList.remove('open');
+            document.getElementById('keyboard-launcher').classList.remove('hidden');
+            currentInput = null;
+        }
+
+        function applyEntryMark(inputElement, type) {
+            if (!inputElement || !inputElement.closest('.col-in')) return;
+            removeEntryCircle(inputElement);
+            removeHorizontalMark(inputElement);
+            inputElement.value = 'X';
+            inputElement.style.setProperty('font-weight', 'bold', 'important');
+            inputElement.style.setProperty('color', type === 'red' ? interfaceColors.red : interfaceColors.blue, 'important');
+
+            if (type === 'blue-red-circle') {
+                const circle = document.createElement('span');
+                circle.className = 'entry-circle';
+                inputElement.closest('.col-in').appendChild(circle);
+            }
+        }
+
+        function insertEntryMark(type) {
+            applyEntryMark(currentInput, type);
+        }
+
+        function insertFibaSymbol(symbol) {
+            if (!currentInput || currentInput.classList.contains('player-text-input')) return;
+            removeEntryCircle(currentInput);
+            removeHorizontalMark(currentInput);
+            if (symbol === '─') {
+                applySingleHorizontalMark(currentInput);
+                currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
+            if (symbol === '═') {
+                applyDoubleHorizontalMark(currentInput);
+                currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+                return;
+            }
+            currentInput.value = symbol;
+            currentInput.style.setProperty('color', interfaceColors[selectedFoulColor], 'important');
+            currentInput.style.setProperty('font-weight', 'bold', 'important');
+            currentInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+
+        // Faltas da Equipe: X quando usada; dois traços automáticos quando não usada.
+        function toggleTeamFoul(element) {
+            const span = element.querySelector('span');
+            const chosenColor = interfaceColors[selectedFoulColor];
+            const state = span.dataset.state || 'auto-double';
+            span.classList.remove('team-foul-x', 'team-foul-double');
+
+            if (state !== 'x') {
+                span.dataset.state = 'x';
+                element.classList.add('foul-marked');
+                span.style.setProperty('--foul-mark-color', chosenColor);
+                span.classList.add('team-foul-x');
+            } else {
+                setTeamFoulAutoDouble(element, Number(element.dataset.period || 2));
+            }
+        }
+
+        // Gerar Tabela de Jogadores
+        function generatePlayerRows(teamId) {
+            const tbody = document.getElementById(teamId);
+            let rows = '';
+            for(let i = 0; i < 12; i++) {
+                rows += `<tr>
+                    <td><input type="text" style="text-align: center;"></td>
+                    <td><input type="text" class="player-text-input player-name-input" data-player-color="black" onclick="openPlayerKeyboard(this)"></td>
+                    <td><input type="text" class="player-text-input player-number-input" data-player-color="black" style="text-align: center; font-weight: bold;" onclick="openPlayerKeyboard(this)"></td>
+                    <td class="col-in"><input type="text" class="entry-input" style="text-align: center; cursor: pointer;" readonly onclick="openKeyboard(this)"></td>
+                    <td class="col-foul"><input type="text" style="text-align: center; cursor: pointer;" readonly onclick="openKeyboard(this)"></td>
+                    <td class="col-foul"><input type="text" style="text-align: center; cursor: pointer;" readonly onclick="openKeyboard(this)"></td>
+                    <td class="col-foul"><input type="text" style="text-align: center; cursor: pointer;" readonly onclick="openKeyboard(this)"></td>
+                    <td class="col-foul"><input type="text" style="text-align: center; cursor: pointer;" readonly onclick="openKeyboard(this)"></td>
+                    <td class="col-foul"><input type="text" style="text-align: center; cursor: pointer;" readonly onclick="openKeyboard(this)"></td>
+                </tr>`;
+            }
+            tbody.innerHTML = rows;
+        }
+
+        // Círculo Manual (Duplo Clique no número do jogador)
+        function toggleCircle(tdElement, team) {
+            const circledClass = team === 'A' ? 'score-circled-A' : 'score-circled-B';
+            
+            const input = tdElement.querySelector('input');
+            if (!input || input.value.trim() === '') return; // Só permite circular se tiver um número de jogador digitado
+
+            const existingCircle = tdElement.querySelector('.' + circledClass);
+            if (existingCircle) { 
+                existingCircle.remove(); 
+            } else {
+                const circle = document.createElement('div');
+                circle.className = circledClass;
+                tdElement.style.setProperty('--mark-color', getPeriodColor());
+                tdElement.appendChild(circle);
+            }
+        }
+
+        // Círculo Manual para Fim de Quarto (Duplo Clique na pontuação cinza)
+        function toggleScoreCircle(tdElement, team) {
+            const circledClass = team === 'A' ? 'score-circled-A' : 'score-circled-B';
+            const existingCircle = tdElement.querySelector('.' + circledClass);
+            const score = tdElement.id.split('-').pop();
+            const playerInput = document.querySelector(`.input-${team}[data-score="${score}"]`);
+            const playerCell = playerInput ? playerInput.parentElement : null;
+            if (existingCircle) { 
+                existingCircle.remove(); 
+                tdElement.style.borderBottom = "none";
+                if (playerCell) playerCell.style.borderBottom = "none";
+            } else {
+                const closingColor = getPeriodColor();
+                const circle = document.createElement('div');
+                circle.className = circledClass;
+                circle.style.borderColor = closingColor;
+                tdElement.appendChild(circle);
+                // Traço de fechamento de quarto
+                tdElement.style.borderBottom = "3px solid " + closingColor;
+                if (playerCell) playerCell.style.borderBottom = "3px solid " + closingColor;
+            }
+            calculateQuarterScores(); // Recalcula placar
+            updateCurrentPeriod();
+        }
+
+        function updateCurrentPeriod() {
+            const closedA = document.querySelectorAll('.score-num .score-circled-A').length;
+            const closedB = document.querySelectorAll('.score-num .score-circled-B').length;
+            currentPeriod = Math.min(4, Math.min(closedA, closedB) + 1);
+        }
+
+        // Função para automatizar os resultados dos períodos e resultado final
+        function calculateQuarterScores() {
+            ['A', 'B'].forEach(team => {
+                let acc = [];
+                // Busca todos os placares de fechamento de quarto circulados do time
+                document.querySelectorAll('.score-num').forEach(td => {
+                    if(td.id && td.id.startsWith('score-' + team + '-') && td.querySelector('.score-circled-' + team)) {
+                        acc.push(parseInt(td.innerText));
+                    }
+                });
+                acc.sort((a,b) => a - b); // Ordena os pontos
+
+                // Subtrai os totais para achar os pontos de cada período individualmente
+                let p1 = acc[0] || 0;
+                let p2 = acc[1] ? acc[1] - acc[0] : 0;
+                let p3 = acc[2] ? acc[2] - acc[1] : 0;
+                let p4 = acc[3] ? acc[3] - acc[2] : 0;
+
+                const teamLower = team.toLowerCase();
+                if(acc.length > 0) document.getElementById('p1-' + teamLower).value = p1; else document.getElementById('p1-' + teamLower).value = '';
+                if(acc.length > 1) document.getElementById('p2-' + teamLower).value = p2; else document.getElementById('p2-' + teamLower).value = '';
+                if(acc.length > 2) document.getElementById('p3-' + teamLower).value = p3; else document.getElementById('p3-' + teamLower).value = '';
+                if(acc.length > 3) document.getElementById('p4-' + teamLower).value = p4; else document.getElementById('p4-' + teamLower).value = '';
+
+                // Busca a pontuação total máxima registrada na progressiva
+                let finalScore = 0;
+                document.querySelectorAll('.input-' + team + '[data-score]').forEach(inp => {
+                    if(inp.value.trim() !== '') finalScore = Math.max(finalScore, parseInt(inp.dataset.score));
+                });
+                document.getElementById('res-' + teamLower).value = finalScore > 0 ? finalScore : '';
+            });
+
+            // Determinar o Vencedor automaticamente
+            const resA = parseInt(document.getElementById('res-a').value) || 0;
+            const resB = parseInt(document.getElementById('res-b').value) || 0;
+            const vencedorInput = document.getElementById('vencedor');
+
+            if (resA > 0 || resB > 0) {
+                if (resA > resB) {
+                    vencedorInput.value = document.getElementById('header-equipeA').value || 'EQUIPE A';
+                    vencedorInput.className = 'final-result-input';
+                } else if (resB > resA) {
+                    vencedorInput.value = document.getElementById('header-equipeB').value || 'EQUIPE B';
+                    vencedorInput.className = 'final-result-input';
+                } else {
+                    vencedorInput.value = "EMPATE";
+                    vencedorInput.className = 'final-result-input';
+                }
+            } else {
+                vencedorInput.value = '';
+            }
+        }
+
+        // Lógica de Contagem de Pontos Inteligente (Risco e Círculo de 3pts)
+        function markScore(inputElement, scoreId, team, currentScore) {
+            const scoreNumElement = document.getElementById(scoreId);
+            const crossedClass = team === 'A' ? 'score-crossed-A' : 'score-crossed-B';
+            const circledClass = team === 'A' ? 'score-circled-A' : 'score-circled-B';
+            const dotClass = team === 'A' ? 'score-dot-A' : 'score-dot-B';
+            
+            // Pega o TD pai onde o input está inserido
+            const parentTd = inputElement.parentElement;
+
+            if (inputElement.value.trim() !== '') {
+                const markingColor = getPeriodColor();
+                inputElement.style.setProperty('color', markingColor, 'important');
+                scoreNumElement.style.setProperty('--mark-color', markingColor);
+                parentTd.style.setProperty('--mark-color', markingColor);
+                // Adiciona o traço diagonal no número cinza
+                scoreNumElement.classList.add(crossedClass);
+
+                // Lógica Inteligente para Cesta de 3 Pontos e Lance Livre (1 pt)
+                let isThreePointer = false;
+                let isFreeThrow = false;
+                
+                // Procura pelo último placar marcado para identificar se a cesta valeu 1, 2 ou 3.
+                let previousMarkedScore = 0;
+                for (let i = currentScore - 1; i >= 1; i--) {
+                    const prevInput = document.querySelector(`.input-${team}[data-score="${i}"]`);
+                    if (prevInput && prevInput.value.trim() !== '') {
+                        previousMarkedScore = i;
+                        break;
+                    }
+                }
+                const scoreDelta = currentScore - previousMarkedScore;
+                isThreePointer = scoreDelta === 3;
+                isFreeThrow = scoreDelta === 1;
+
+                // Aplica ou remove o círculo de 3 pontos
+                if (isThreePointer) {
+                    if (!parentTd.querySelector('.' + circledClass)) {
+                        const circle = document.createElement('div');
+                        circle.className = circledClass;
+                        parentTd.appendChild(circle);
+                    }
+                } else {
+                    // Se não é de 3 pontos e foi digitado normalmente, remove o círculo automático se existir
+                    const existingCircle = parentTd.querySelector('.' + circledClass);
+                    if(existingCircle) existingCircle.remove();
+                }
+
+                // Aplica ou remove o ponto de Lance Livre (1 ponto)
+                if (isFreeThrow) {
+                    // No lance livre, a bolinha substitui o risco e cobre o número do placar.
+                    scoreNumElement.classList.remove(crossedClass);
+                    if (!scoreNumElement.querySelector('.' + dotClass)) {
+                        const dot = document.createElement('div');
+                        dot.className = dotClass;
+                        scoreNumElement.appendChild(dot);
+                    }
+                } else {
+                    scoreNumElement.classList.add(crossedClass);
+                    const existingDot = scoreNumElement.querySelector('.' + dotClass);
+                    if(existingDot) existingDot.remove();
+                }
+
+            } else {
+                // Se apagou o valor, remove o traço, o círculo e o ponto do TD
+                scoreNumElement.classList.remove(crossedClass);
+                const existingCircle = parentTd.querySelector('.' + circledClass);
+                if(existingCircle) existingCircle.remove();
+                const existingDot = scoreNumElement.querySelector('.' + dotClass);
+                if(existingDot) existingDot.remove();
+            }
+            
+            calculateQuarterScores(); // Atualiza painel de resultados a cada ponto
+        }
+
+        // Gerar Tabela de Contagem Progressiva (16 Colunas exatas)
+        function generateScoreTable() {
+            const tbody = document.getElementById('running-score');
+            let rows = '';
+            for(let i = 1; i <= 40; i++) {
+                rows += `<tr>
+                    <td ondblclick="toggleCircle(this, 'A')" style="border-left: 2px solid #000;"><input type="text" class="input-A" data-team="A" data-score="${i}" oninput="markScore(this, 'score-A-${i}', 'A', ${i})"></td>
+                    <td id="score-A-${i}" class="score-num" style="border-right: 2px solid #000;" ondblclick="toggleScoreCircle(this, 'A')">${i}</td>
+                    <td id="score-B-${i}" class="score-num" ondblclick="toggleScoreCircle(this, 'B')">${i}</td>
+                    <td ondblclick="toggleCircle(this, 'B')" style="border-right: 2px solid #000;"><input type="text" class="input-B" data-team="B" data-score="${i}" oninput="markScore(this, 'score-B-${i}', 'B', ${i})"></td>
+
+                    <td ondblclick="toggleCircle(this, 'A')"><input type="text" class="input-A" data-team="A" data-score="${i+40}" oninput="markScore(this, 'score-A-${i+40}', 'A', ${i+40})"></td>
+                    <td id="score-A-${i+40}" class="score-num" style="border-right: 2px solid #000;" ondblclick="toggleScoreCircle(this, 'A')">${i+40}</td>
+                    <td id="score-B-${i+40}" class="score-num" ondblclick="toggleScoreCircle(this, 'B')">${i+40}</td>
+                    <td ondblclick="toggleCircle(this, 'B')" style="border-right: 2px solid #000;"><input type="text" class="input-B" data-team="B" data-score="${i+40}" oninput="markScore(this, 'score-B-${i+40}', 'B', ${i+40})"></td>
+
+                    <td ondblclick="toggleCircle(this, 'A')"><input type="text" class="input-A" data-team="A" data-score="${i+80}" oninput="markScore(this, 'score-A-${i+80}', 'A', ${i+80})"></td>
+                    <td id="score-A-${i+80}" class="score-num" style="border-right: 2px solid #000;" ondblclick="toggleScoreCircle(this, 'A')">${i+80}</td>
+                    <td id="score-B-${i+80}" class="score-num" ondblclick="toggleScoreCircle(this, 'B')">${i+80}</td>
+                    <td ondblclick="toggleCircle(this, 'B')" style="border-right: 2px solid #000;"><input type="text" class="input-B" data-team="B" data-score="${i+80}" oninput="markScore(this, 'score-B-${i+80}', 'B', ${i+80})"></td>
+
+                    <td ondblclick="toggleCircle(this, 'A')"><input type="text" class="input-A" data-team="A" data-score="${i+120}" oninput="markScore(this, 'score-A-${i+120}', 'A', ${i+120})"></td>
+                    <td id="score-A-${i+120}" class="score-num" style="border-right: 2px solid #000;" ondblclick="toggleScoreCircle(this, 'A')">${i+120}</td>
+                    <td id="score-B-${i+120}" class="score-num" ondblclick="toggleScoreCircle(this, 'B')">${i+120}</td>
+                    <td ondblclick="toggleCircle(this, 'B')" style="border-right: 2px solid #000;"><input type="text" class="input-B" data-team="B" data-score="${i+120}" oninput="markScore(this, 'score-B-${i+120}', 'B', ${i+120})"></td>
+                </tr>`;
+            }
+            tbody.innerHTML = rows;
+        }
+
+        // Modais de Limpeza
+        function showClearModal() { document.getElementById('confirmModal').style.display = 'flex'; }
+        function executarLimpeza() {
+            document.querySelectorAll('input').forEach(input => input.value = '');
+            document.querySelectorAll('.foul-box span').forEach(span => {
+                span.innerHTML = '';
+                span.dataset.state = 'empty';
+                span.classList.remove('team-foul-x', 'team-foul-double');
+                span.style.removeProperty('--foul-mark-color');
+            });
+            document.querySelectorAll('.foul-box').forEach(box => box.classList.remove('foul-marked'));
+            document.querySelectorAll('.entry-circle').forEach(circle => circle.remove());
+            document.querySelectorAll('.single-horizontal-overlay, .double-horizontal-overlay').forEach(mark => mark.remove());
+            document.querySelectorAll('[data-single-horizontal-mark]').forEach(input => delete input.dataset.singleHorizontalMark);
+            document.querySelectorAll('[data-double-horizontal-mark]').forEach(input => delete input.dataset.doubleHorizontalMark);
+            document.querySelectorAll('.player-text-input').forEach(input => {
+                input.dataset.playerColor = 'black';
+                input.style.setProperty('color', interfaceColors.black, 'important');
+            });
+            document.querySelectorAll('.score-num').forEach(num => { num.className = 'score-num'; num.style.borderBottom = 'none'; });
+            document.querySelectorAll('.score-circled-A, .score-circled-B').forEach(circle => circle.remove());
+            document.querySelectorAll('[style*="border-bottom"]').forEach(el => {
+                if (el.closest('.score-table')) el.style.borderBottom = 'none';
+            });
+            currentPeriod = 1;
+            setFoulColor('red');
+            selectedPlayerColor = 'black';
+            updatePlayerColorButtons('black');
+            setExtraPeriodColor('red');
+            setFinalResultColor('black');
+            resetBulkFillButton();
+            initializeAutomaticClosureMarks();
+            document.getElementById('confirmModal').style.display = 'none';
+        }
+
+        // Assistente analítico: usa os dados realmente preenchidos na súmula.
+        let lastAnalysisData = null;
+
+        function escapeHtml(value) {
+            return String(value ?? '').replace(/[&<>'"]/g, char => ({
+                '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+            })[char]);
+        }
+
+        function normalizeAnalysisText(value) {
+            return String(value || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        }
+
+        function readScoreValue(id) {
+            return parseInt(document.getElementById(id)?.value, 10) || 0;
+        }
+
+        function collectTeamAnalysis(team) {
+            const teamLower = team.toLowerCase();
+            const tbodyId = team === 'A' ? 'teamA-players' : 'teamB-players';
+            const name = document.getElementById(`header-equipe${team}`)?.value.trim() || `EQUIPE ${team}`;
+            const players = [];
+            const playersByNumber = new Map();
+
+            document.querySelectorAll(`#${tbodyId} tr`).forEach(row => {
+                const playerName = row.querySelector('.player-name-input')?.value.trim() || '';
+                const number = row.querySelector('.player-number-input')?.value.trim() || '';
+                if (!playerName && !number) return;
+                const foulCodes = Array.from(row.querySelectorAll('td.col-foul input'))
+                    .map(input => input.value.trim()).filter(Boolean);
+                const player = {
+                    team, teamName: name, name: playerName || `Camisa ${number || '?'}`, number,
+                    points: 0, freeThrows: 0, twoPointers: 0, threePointers: 0,
+                    otherPoints: 0, fouls: foulCodes.length, foulCodes
+                };
+                players.push(player);
+                if (number) playersByNumber.set(number, player);
+            });
+
+            const scoringInputs = Array.from(document.querySelectorAll(`.input-${team}[data-score]`))
+                .filter(input => input.value.trim() !== '')
+                .map(input => ({ score: parseInt(input.dataset.score, 10), number: input.value.trim() }))
+                .filter(event => Number.isFinite(event.score))
+                .sort((a, b) => a.score - b.score);
+
+            let previousScore = 0;
+            const warnings = [];
+            const events = [];
+            scoringInputs.forEach(event => {
+                const points = event.score - previousScore;
+                if (points <= 0) return;
+                if (points > 3) warnings.push(`Salto de ${points} pontos no placar ${event.score} da ${name}.`);
+                let player = playersByNumber.get(event.number);
+                if (!player) {
+                    player = {
+                        team, teamName: name, name: `Camisa ${event.number || '?'}`, number: event.number,
+                        points: 0, freeThrows: 0, twoPointers: 0, threePointers: 0,
+                        otherPoints: 0, fouls: 0, foulCodes: []
+                    };
+                    players.push(player);
+                    if (event.number) playersByNumber.set(event.number, player);
+                }
+                player.points += points;
+                if (points === 1) player.freeThrows++;
+                else if (points === 2) player.twoPointers++;
+                else if (points === 3) player.threePointers++;
+                else player.otherPoints += points;
+                events.push({ ...event, points, player });
+                previousScore = event.score;
+            });
+
+            const rankedPlayers = players.slice().sort((a, b) =>
+                b.points - a.points || a.fouls - b.fouls || a.name.localeCompare(b.name, 'pt-BR')
+            );
+            const scoreFromResult = readScoreValue(`res-${teamLower}`);
+            const finalScore = Math.max(scoreFromResult, previousScore);
+            const quarters = [1, 2, 3, 4].map(period => readScoreValue(`p${period}-${teamLower}`));
+
+            return {
+                team, name, players, rankedPlayers, events, warnings, finalScore, quarters,
+                fouls: players.reduce((total, player) => total + player.fouls, 0),
+                freeThrows: players.reduce((total, player) => total + player.freeThrows, 0),
+                twoPointers: players.reduce((total, player) => total + player.twoPointers, 0),
+                threePointers: players.reduce((total, player) => total + player.threePointers, 0)
+            };
+        }
+
+        function buildGameAnalysis() {
+            const teamA = collectTeamAnalysis('A');
+            const teamB = collectTeamAnalysis('B');
+            const aLooksRural = /ufrpe|rural/i.test(teamA.name);
+            const bLooksRural = /ufrpe|rural/i.test(teamB.name);
+            const ourTeam = aLooksRural && !bLooksRural ? teamA : teamB;
+            const opponent = ourTeam === teamA ? teamB : teamA;
+            const winner = teamA.finalScore === teamB.finalScore ? null :
+                (teamA.finalScore > teamB.finalScore ? teamA : teamB);
+            const topScorer = ourTeam.rankedPlayers.find(player => player.points > 0) || null;
+            const opponentFocus = opponent.rankedPlayers.find(player => player.points > 0) || null;
+            const allWarnings = [...teamA.warnings, ...teamB.warnings];
+            return {
+                teamA, teamB, ourTeam, opponent, winner, topScorer, opponentFocus, allWarnings,
+                hasScoringData: teamA.events.length > 0 || teamB.events.length > 0,
+                generatedAt: new Date()
+            };
+        }
+
+        function formatPlayer(player) {
+            if (!player) return 'Sem pontuação individual registrada';
+            const shirt = player.number ? `#${escapeHtml(player.number)} · ` : '';
+            return `${shirt}${escapeHtml(player.name)} — ${player.points} pts`;
+        }
+
+        function buildRecommendations(data) {
+            const recommendations = [];
+            const ours = data.ourTeam;
+            const opponent = data.opponent;
+            const focus = data.opponentFocus;
+            if (focus) {
+                recommendations.push(`Priorizar a marcação do camisa ${focus.number || '?'} (${focus.name}), responsável por ${focus.points} pontos.`);
+            }
+
+            const highFouls = ours.players.filter(player => player.fouls >= 4);
+            if (highFouls.length) {
+                recommendations.push(`Administrar a rotação de ${highFouls.map(player => `${player.name} (${player.fouls} faltas)`).join(', ')}.`);
+            }
+
+            const quarterDiffs = ours.quarters.map((points, index) => points - opponent.quarters[index]);
+            const worstValue = Math.min(...quarterDiffs);
+            if (worstValue < 0) {
+                const worstQuarter = quarterDiffs.indexOf(worstValue) + 1;
+                recommendations.push(`Revisar o ${worstQuarter}º período, quando a equipe teve saldo de ${worstValue} ponto(s).`);
+            }
+
+            if (ours.threePointers < opponent.threePointers) {
+                recommendations.push(`Atenção ao perímetro: o adversário converteu ${opponent.threePointers} bola(s) de três, contra ${ours.threePointers} da nossa equipe.`);
+            }
+            if (data.topScorer && ours.finalScore > 0 && data.topScorer.points / ours.finalScore >= 0.4) {
+                recommendations.push(`Diversificar a criação ofensiva: ${data.topScorer.name} concentrou ${Math.round(data.topScorer.points / ours.finalScore * 100)}% da pontuação.`);
+            }
+            if (!data.hasScoringData) {
+                recommendations.push('Preencher a contagem progressiva com o número do atleta para liberar a análise individual de pontuação.');
+            }
+            return recommendations;
+        }
+
+        function playerTableRows(team) {
+            const players = team.rankedPlayers.filter(player => player.points > 0 || player.fouls > 0);
+            if (!players.length) return '<tr><td colspan="8">Nenhum dado individual registrado.</td></tr>';
+            return players.map(player => `<tr>
+                <td>${escapeHtml(team.name)}</td><td>${escapeHtml(player.number || '—')}</td><td style="text-align:left">${escapeHtml(player.name)}</td>
+                <td>${player.points}</td><td>${player.freeThrows}</td><td>${player.twoPointers}</td><td>${player.threePointers}</td><td>${player.fouls}</td>
+            </tr>`).join('');
+        }
+
+        function buildAnalysisHTML(data, mode) {
+            const ours = data.ourTeam;
+            const opponent = data.opponent;
+            const recommendations = buildRecommendations(data);
+            const scoreText = `${escapeHtml(data.teamA.name)} ${data.teamA.finalScore} × ${data.teamB.finalScore} ${escapeHtml(data.teamB.name)}`;
+            const winnerText = data.winner ? escapeHtml(data.winner.name) : 'Empate ou resultado ainda incompleto';
+            const highFoulPlayers = ours.players.filter(player => player.fouls >= 4);
+            const quarters = [0, 1, 2, 3].map(index =>
+                `<li>${index + 1}º período: ${escapeHtml(ours.name)} ${ours.quarters[index]} × ${opponent.quarters[index]} ${escapeHtml(opponent.name)}</li>`
+            ).join('');
+
+            const technicalDetails = mode === 'technical' ? `
+                <h4>Produção por atleta</h4>
+                <div style="overflow-x:auto"><table style="font-size:11px; min-width:620px">
+                    <thead><tr><th>Equipe</th><th>Nº</th><th>Atleta</th><th>PTS</th><th>LL</th><th>2PT</th><th>3PT</th><th>Faltas</th></tr></thead>
+                    <tbody>${playerTableRows(data.teamA)}${playerTableRows(data.teamB)}</tbody>
+                </table></div>
+                <h4>Leitura por período</h4><ul>${quarters}</ul>
+                <h4>Disciplina</h4><p>${highFoulPlayers.length ?
+                    highFoulPlayers.map(player => `${escapeHtml(player.name)}: ${player.fouls} faltas`).join(' · ') :
+                    'Nenhum atleta da nossa equipe chegou a quatro faltas nos dados registrados.'}</p>
+            ` : '';
+
+            return `<div class="analysis-report">
+                <div class="analysis-summary-grid">
+                    <div class="analysis-card"><strong>Placar registrado</strong>${scoreText}<br>Vencedor: ${winnerText}</div>
+                    <div class="analysis-card"><strong>Destaque da ${escapeHtml(ours.name)}</strong>${formatPlayer(data.topScorer)}</div>
+                    <div class="analysis-card"><strong>Foco defensivo</strong>${formatPlayer(data.opponentFocus)}</div>
+                </div>
+                <h4>Resumo estatístico</h4>
+                <p><b>${escapeHtml(ours.name)}:</b> ${ours.freeThrows} LL, ${ours.twoPointers} cestas de 2, ${ours.threePointers} cestas de 3 e ${ours.fouls} faltas registradas.</p>
+                <p><b>${escapeHtml(opponent.name)}:</b> ${opponent.freeThrows} LL, ${opponent.twoPointers} cestas de 2, ${opponent.threePointers} cestas de 3 e ${opponent.fouls} faltas registradas.</p>
+                <h4>Pontos de atenção para o técnico Ricardo</h4>
+                <ol>${recommendations.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ol>
+                ${technicalDetails}
+                ${data.allWarnings.length ? `<h4>Conferência dos dados</h4><ul>${data.allWarnings.map(item => `<li>${escapeHtml(item)}</li>`).join('')}</ul>` : ''}
+                <div class="analysis-chart-container"><canvas id="analysis-chart" aria-label="Gráfico de pontuação por atleta"></canvas></div>
+                <p style="margin-top:10px; color:#475569; font-size:10px;"><b>Importante:</b> o destaque é estimado pelos pontos e faltas disponíveis. Rebotes, assistências, roubos e arremessos tentados não fazem parte desta súmula e, portanto, não são inventados pelo sistema.</p>
+            </div>`;
+        }
+
+        function renderGameAnalysis(mode = 'summary') {
+            const output = document.getElementById('ia-resposta');
+            lastAnalysisData = buildGameAnalysis();
+            output.innerHTML = buildAnalysisHTML(lastAnalysisData, mode);
+            const canvas = document.getElementById('analysis-chart');
+            if (canvas) drawAnalysisChart(canvas, lastAnalysisData);
+        }
+
+        function showIA() {
+            document.getElementById('iaModal').style.display = 'flex';
+            renderGameAnalysis('summary');
+        }
+
+        function answerAnalysisQuestion() {
+            const questionInput = document.getElementById('ia-pergunta');
+            const question = normalizeAnalysisText(questionInput.value);
+            const output = document.getElementById('ia-resposta');
+            const data = buildGameAnalysis();
+            lastAnalysisData = data;
+            let answer = '';
+
+            if (!question) {
+                answer = 'Digite uma pergunta sobre placar, destaque, marcação, faltas ou períodos.';
+            } else if (/maior pontuador|melhor jogador|destaque/.test(question)) {
+                answer = `<b>Destaque da ${escapeHtml(data.ourTeam.name)}:</b> ${formatPlayer(data.topScorer)}.<br><b>Destaque adversário:</b> ${formatPlayer(data.opponentFocus)}.`;
+            } else if (/quem.*marcar|marcacao|adversario|perigo/.test(question)) {
+                answer = data.opponentFocus ?
+                    `O principal foco defensivo deve ser o camisa <b>${escapeHtml(data.opponentFocus.number || '?')}</b>, ${escapeHtml(data.opponentFocus.name)}, com <b>${data.opponentFocus.points} pontos</b>.` :
+                    'Ainda não há pontuação individual suficiente para indicar um foco defensivo.';
+            } else if (/falta|disciplina/.test(question)) {
+                const pressured = data.ourTeam.players.filter(player => player.fouls >= 4);
+                answer = `<b>${escapeHtml(data.ourTeam.name)}:</b> ${data.ourTeam.fouls} faltas. <b>${escapeHtml(data.opponent.name)}:</b> ${data.opponent.fouls} faltas.` +
+                    (pressured.length ? `<br>Atenção para ${pressured.map(player => `${escapeHtml(player.name)} (${player.fouls})`).join(', ')}.` : ' Nenhum atleta da nossa equipe chegou a quatro faltas.');
+            } else if (/placar|resultado|venceu|vencedor/.test(question)) {
+                answer = `Placar registrado: <b>${escapeHtml(data.teamA.name)} ${data.teamA.finalScore} × ${data.teamB.finalScore} ${escapeHtml(data.teamB.name)}</b>. ` +
+                    (data.winner ? `Vencedor: ${escapeHtml(data.winner.name)}.` : 'O resultado está empatado ou incompleto.');
+            } else if (/periodo|quarto/.test(question)) {
+                answer = [0, 1, 2, 3].map(index => `${index + 1}º: ${escapeHtml(data.teamA.name)} ${data.teamA.quarters[index]} × ${data.teamB.quarters[index]} ${escapeHtml(data.teamB.name)}`).join('<br>');
+            } else {
+                answer = 'Consigo responder, com os dados da súmula, sobre: maior pontuador, destaque, quem marcar, faltas, placar e desempenho por período.';
+            }
+            output.innerHTML = `<div class="analysis-report"><h4>Resposta</h4><p>${answer}</p></div>`;
+        }
+
+        function drawAnalysisChart(canvas, data) {
+            const entries = [
+                ...data.teamA.rankedPlayers.filter(player => player.points > 0).slice(0, 5),
+                ...data.teamB.rankedPlayers.filter(player => player.points > 0).slice(0, 5)
+            ].sort((a, b) => b.points - a.points);
+            const width = 900;
+            const rowHeight = 36;
+            const height = Math.max(170, 78 + entries.length * rowHeight);
+            canvas.width = width;
+            canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, width, height);
+            ctx.fillStyle = '#0f172a';
+            ctx.font = 'bold 22px Arial';
+            ctx.fillText('Pontuação por atleta', 24, 32);
+            ctx.font = '14px Arial';
+            ctx.fillStyle = '#475569';
+            ctx.fillText(`${data.teamA.name} × ${data.teamB.name}`, 24, 54);
+
+            if (!entries.length) {
+                ctx.fillStyle = '#64748b';
+                ctx.font = '18px Arial';
+                ctx.fillText('Preencha a contagem progressiva para gerar o gráfico.', 24, 110);
+                return;
+            }
+
+            const maxPoints = Math.max(...entries.map(player => player.points), 1);
+            entries.forEach((player, index) => {
+                const y = 76 + index * rowHeight;
+                const label = `${player.number ? '#' + player.number + ' ' : ''}${player.name}`.slice(0, 30);
+                ctx.font = '14px Arial';
+                ctx.fillStyle = '#0f172a';
+                ctx.fillText(label, 24, y + 18);
+                const barX = 265;
+                const barWidth = Math.max(4, (player.points / maxPoints) * 545);
+                ctx.fillStyle = player.team === 'A' ? '#dc2626' : '#2563eb';
+                ctx.fillRect(barX, y + 3, barWidth, 22);
+                ctx.fillStyle = '#0f172a';
+                ctx.font = 'bold 14px Arial';
+                ctx.fillText(`${player.points} pts`, Math.min(barX + barWidth + 8, 840), y + 19);
+            });
+        }
+
+        function safeAnalysisFileName(value) {
+            return normalizeAnalysisText(value).replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'equipe';
+        }
+
+        function downloadAnalysisCSV() {
+            const data = buildGameAnalysis();
+            lastAnalysisData = data;
+            const rows = [
+                ['RELATÓRIO DA SÚMULA'],
+                ['Jogo', data.teamA.name, 'x', data.teamB.name],
+                ['Placar', data.teamA.finalScore, 'x', data.teamB.finalScore],
+                [],
+                ['Equipe', 'Número', 'Atleta', 'Pontos', 'Lances livres', 'Cestas de 2', 'Cestas de 3', 'Faltas']
+            ];
+            [data.teamA, data.teamB].forEach(team => {
+                team.rankedPlayers.forEach(player => rows.push([
+                    team.name, player.number, player.name, player.points,
+                    player.freeThrows, player.twoPointers, player.threePointers, player.fouls
+                ]));
+            });
+            rows.push([], ['Período', data.teamA.name, data.teamB.name]);
+            [0, 1, 2, 3].forEach(index => rows.push([index + 1, data.teamA.quarters[index], data.teamB.quarters[index]]));
+            const csv = '\uFEFF' + rows.map(row => row.map(value => `"${String(value ?? '').replace(/"/g, '""')}"`).join(';')).join('\r\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = `analise-${safeAnalysisFileName(data.teamA.name)}-x-${safeAnalysisFileName(data.teamB.name)}.csv`;
+            link.click();
+            window.setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        }
+
+        function downloadAnalysisChart() {
+            const data = buildGameAnalysis();
+            lastAnalysisData = data;
+            const canvas = document.createElement('canvas');
+            drawAnalysisChart(canvas, data);
+            const link = document.createElement('a');
+            link.download = `grafico-${safeAnalysisFileName(data.teamA.name)}-x-${safeAnalysisFileName(data.teamB.name)}.png`;
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+        }
+
+        const signatureRoles = {
+            apontador: 'Apontador', cronometrista: 'Cronometrista',
+            operador: 'Operador de 24 segundos', representante: 'Representante',
+            arbitro: 'Árbitro', fiscal1: 'Fiscal 1', fiscal2: 'Fiscal 2',
+            capitao: 'Capitão (protesto)'
+        };
+        let activeSignatureRole = null;
+        let signatureDrawing = false;
+        let signatureDirty = false;
+
+        function signatureInput(role) {
+            const row = document.querySelector('[data-signature-role="' + role + '"]');
+            return row ? row.querySelector('input') : null;
+        }
+
+        function applyStoredSignature(role, dataUrl, signedBy) {
+            const row = document.querySelector('[data-signature-role="' + role + '"]');
+            const image = document.getElementById('signature-image-' + role);
+            const input = signatureInput(role);
+            if (!row || !image) return;
+            if (dataUrl) {
+                image.src = dataUrl;
+                row.classList.add('has-signature');
+            } else {
+                image.removeAttribute('src');
+                row.classList.remove('has-signature');
+            }
+            if (input && signedBy !== undefined) input.value = signedBy || '';
+        }
+        window.applyStoredSignature = applyStoredSignature;
+
+        function signatureContext() {
+            const canvas = document.getElementById('signature-canvas');
+            const context = canvas.getContext('2d');
+            context.lineCap = 'round';
+            context.lineJoin = 'round';
+            context.lineWidth = 5;
+            context.strokeStyle = '#0f172a';
+            return { canvas, context };
+        }
+
+        function clearSignatureCanvas() {
+            const { canvas, context } = signatureContext();
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            signatureDirty = false;
+        }
+
+        function loadSignatureIntoCanvas(dataUrl) {
+            clearSignatureCanvas();
+            if (!dataUrl) return;
+            const { canvas, context } = signatureContext();
+            const image = new Image();
+            image.onload = function () { context.drawImage(image, 0, 0, canvas.width, canvas.height); };
+            image.src = dataUrl;
+        }
+
+        function openSignaturePad(role) {
+            activeSignatureRole = role;
+            document.getElementById('signature-title').textContent = 'Assinatura · ' + signatureRoles[role];
+            document.getElementById('signature-name').value = (signatureInput(role) || {}).value || '';
+            const image = document.getElementById('signature-image-' + role);
+            loadSignatureIntoCanvas(image && image.src ? image.src : '');
+            document.getElementById('signatureModal').style.display = 'flex';
+        }
+
+        function closeSignaturePad() {
+            document.getElementById('signatureModal').style.display = 'none';
+            activeSignatureRole = null;
+        }
+
+        async function saveSignaturePad() {
+            if (!activeSignatureRole) return;
+            const { canvas } = signatureContext();
+            const dataUrl = canvas.toDataURL('image/png');
+            const signedBy = document.getElementById('signature-name').value.trim();
+            applyStoredSignature(activeSignatureRole, dataUrl, signedBy);
+            localStorage.setItem('rural-signature-' + activeSignatureRole, JSON.stringify({ dataUrl, signedBy }));
+            if (typeof window.persistSignatureToSite === 'function') {
+                const ok = await window.persistSignatureToSite(activeSignatureRole, dataUrl, signedBy);
+                if (!ok) return;
+            }
+            closeSignaturePad();
+        }
+
+        async function removeCurrentSignature() {
+            if (!activeSignatureRole) return;
+            const role = activeSignatureRole;
+            applyStoredSignature(role, '', '');
+            localStorage.removeItem('rural-signature-' + role);
+            if (typeof window.deleteOfficialSignature === 'function') await window.deleteOfficialSignature(role);
+            closeSignaturePad();
+        }
+
+        (function initializeSignatureCanvas() {
+            const canvas = document.getElementById('signature-canvas');
+            function point(event) {
+                const rect = canvas.getBoundingClientRect();
+                return {
+                    x: (event.clientX - rect.left) * canvas.width / rect.width,
+                    y: (event.clientY - rect.top) * canvas.height / rect.height
+                };
+            }
+            canvas.addEventListener('pointerdown', function (event) {
+                signatureDrawing = true;
+                signatureDirty = true;
+                canvas.setPointerCapture(event.pointerId);
+                const p = point(event);
+                const { context } = signatureContext();
+                context.beginPath();
+                context.moveTo(p.x, p.y);
+            });
+            canvas.addEventListener('pointermove', function (event) {
+                if (!signatureDrawing) return;
+                const p = point(event);
+                const { context } = signatureContext();
+                context.lineTo(p.x, p.y);
+                context.stroke();
+            });
+            ['pointerup', 'pointercancel'].forEach(name => canvas.addEventListener(name, function () {
+                signatureDrawing = false;
+            }));
+        })();
+
+        function finishLinkedGame() {
+            alert('Esta súmula ainda não está conectada a uma partida do site.');
+        }
+
+        function fitScoreSheetToOnePrintedPage() {
+            const page = document.getElementById('sumula-container');
+            if (!page) return;
+            const pxPerMm = 96 / 25.4;
+            const printableWidth = 206 * pxPerMm;
+            const printableHeight = 293 * pxPerMm;
+            const scale = Math.min(.98, printableWidth / page.scrollWidth, printableHeight / page.scrollHeight);
+            document.documentElement.style.setProperty('--print-zoom', String(Math.max(.68, scale)));
+        }
+        window.addEventListener('beforeprint', fitScoreSheetToOnePrintedPage);
+        window.addEventListener('afterprint', function () {
+            document.documentElement.style.removeProperty('--print-zoom');
+        });
+
+        window.onload = function() {
+            generatePlayerRows('teamA-players');
+            generatePlayerRows('teamB-players');
+            generateScoreTable();
+
+            // Auto-atualização se mudar o nome do time
+            document.getElementById('header-equipeA').addEventListener('input', calculateQuarterScores);
+            document.getElementById('header-equipeB').addEventListener('input', calculateQuarterScores);
+
+            // Auto-preenchimento baseado na foto da UFRPE x UFPE
+            document.getElementById('header-equipeA').value = "UFPE";
+            document.getElementById('header-equipeB').value = "UFRPE";
+            document.getElementById('teamA-name').value = "UFPE";
+            document.getElementById('teamB-name').value = "UFRPE";
+            document.getElementById('header-comp').value = "JUPS 2026";
+            document.getElementById('header-jogo').value = "1";
+            document.getElementById('header-local').value = "SPORT";
+            document.getElementById('header-data').value = "2026-06-14";
+            document.getElementById('header-hora-inicio').value = "10:10";
+            document.getElementById('header-hora-fim').value = "11:40";
+            document.getElementById('header-arbitro').value = "HUGO SOUZA";
+            document.getElementById('header-fiscal1').value = "ANDERSON FERREIRA";
+            document.getElementById('header-fiscal2').value = "KERVIN SANTOS";
+
+            const pA = [
+                {n:"ELIARE ADRIA", num:"3", in:"X", f1:"P2"},
+                {n:"ALLAN SILVA", num:"4", in:"X", f1:"P", f2:"P2"},
+                {n:"JOAO TRAVASSOS", num:"5", in:"⊗", f1:"P2"},
+                {n:"DOUGLAS MAIA", num:"10", in:"X"},
+                {n:"PEDRO HEREDIA", num:"12", in:"⊗", f1:"P1", f2:"P", f3:"P2"},
+                {n:"SERGIO ALMEIDA F.", num:"15", in:"⊗", f1:"P2", f2:"P2", f3:"T1"},
+                {n:"KAUA SILVA", num:"16", in:"X"},
+                {n:"FERNANDO SANTOS", num:"24", in:"X"},
+                {n:"GABRIEL FEITOSA", num:"91", in:"⊗", f1:"P", f2:"P", f3:"P"},
+                {n:"EMANUEL SILVA", num:"99", in:"⊗", f1:"P", f2:"P"},
+                {n:"JOÃO SOARES", num:"11", in:"X"},
+                {n:"VINICIUS MELO CAP", num:"30", in:" "}
+            ];
+
+            const pB = [
+                {n:"JULIANO SOUSA", num:"4", in:"X"},
+                {n:"ANTONIO SOUSA", num:"6", in:"⊗", f1:"P", f2:"P", f3:"P2", f4:"P1"},
+                {n:"JOSÉ A. RODRIGUES CAP", num:"7", in:"⊗"},
+                {n:"DAVI SILVA", num:"8", in:"X"},
+                {n:"PEDRO MONTEIRO", num:"9", in:"X"},
+                {n:"CAIO PEREIRA", num:"10", in:"⊗", f1:"P", f2:"P", f3:"P2"},
+                {n:"NELSON CASTRO", num:"11", in:"⊗", f1:"P"},
+                {n:"LUIZ BATISTA", num:"12", in:"X", f1:"P"},
+                {n:"MARIO SILVA", num:"13", in:"X"},
+                {n:"MARCOS AGUIAR", num:"14", in:"⊗"},
+                {n:"JOSEPHY FARIAS", num:"15", in:"X", f1:"T1", f2:"P2"}
+            ];
+
+            function fillTeam(tbodyId, data) {
+                const tbody = document.getElementById(tbodyId);
+                data.forEach((p, i) => {
+                    if(tbody.rows[i]) {
+                        tbody.rows[i].cells[1].querySelector('input').value = p.n;
+                        tbody.rows[i].cells[2].querySelector('input').value = p.num;
+                        if(p.in && p.in.trim()) {
+                            const entryInput = tbody.rows[i].cells[3].querySelector('input');
+                            applyEntryMark(entryInput, p.in === '⊗' ? 'blue-red-circle' : 'blue');
+                        }
+                        if(p.f1) tbody.rows[i].cells[4].querySelector('input').value = p.f1;
+                        if(p.f2) tbody.rows[i].cells[5].querySelector('input').value = p.f2;
+                        if(p.f3) tbody.rows[i].cells[6].querySelector('input').value = p.f3;
+                        if(p.f4) tbody.rows[i].cells[7].querySelector('input').value = p.f4;
+                    }
+                });
+            }
+
+            fillTeam('teamA-players', pA);
+            fillTeam('teamB-players', pB);
+
+            document.getElementById('teamA-tec').value = "VINICIUS MELO";
+            document.getElementById('teamB-tec').value = "RICARDO LIMA";
+            document.getElementById('apontador').value = "RAYSSA SILVA";
+            document.getElementById('cronometrista').value = "FLAVIO NEVES";
+            document.getElementById('operador').value = "FLAVIO NEVES";
+            
+            document.getElementById('p1-a').value = "15"; document.getElementById('p1-b').value = "10";
+            document.getElementById('p2-a').value = "13"; document.getElementById('p2-b').value = "10";
+            document.getElementById('p3-a').value = "12"; document.getElementById('p3-b').value = "13";
+            document.getElementById('p4-a').value = "15"; document.getElementById('p4-b').value = "14";
+            document.getElementById('res-a').value = "55"; document.getElementById('res-b').value = "47";
+            document.getElementById('vencedor').value = "UFPE";
+            setExtraPeriodColor('red');
+            setFinalResultColor('black');
+            initializeAutomaticClosureMarks();
+        }
+        
+        // Clica fora para fechar o teclado
+        document.addEventListener('click', function(event) {
+            const kb = document.getElementById('fiba-keyboard');
+            const sheet = document.getElementById('sumula-container');
+            if (currentInput && !kb.contains(event.target) && !sheet.contains(event.target)) {
+                closeKeyboard();
+            }
+        });
+    </script>
+</body>
+</html>

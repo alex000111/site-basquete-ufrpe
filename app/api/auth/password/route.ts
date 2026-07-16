@@ -1,0 +1,2 @@
+import { changePassword, getCurrentUser } from "../../../site-auth";
+export async function POST(req:Request){if(!await getCurrentUser())return Response.json({error:"Não autorizado"},{status:401});const {password}=await req.json() as {password?:string};if(!password||password.length<8)return Response.json({error:"Use pelo menos 8 caracteres"},{status:400});await changePassword(password);return Response.json({ok:true})}

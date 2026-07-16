@@ -1,0 +1,2 @@
+import { login } from "../../../site-auth";
+export async function POST(req:Request){const {username,password}=await req.json() as {username?:string,password?:string};const user=await login((username||"").trim().toLowerCase(),password||"");if(!user)return Response.json({error:"Usuário ou senha inválidos"},{status:401});return Response.json({user:{username:user.username,name:user.displayName,role:user.role,mustChangePassword:user.mustChangePassword}})}
