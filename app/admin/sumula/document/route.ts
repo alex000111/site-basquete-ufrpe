@@ -217,7 +217,7 @@ const bridge = String.raw`<script>
 
   function scheduleSync() {
     window.clearTimeout(syncTimer);
-    syncTimer = window.setTimeout(syncScoreboard, 550);
+    syncTimer = window.setTimeout(syncScoreboard, 2500);
   }
 
   async function loadGame() {
